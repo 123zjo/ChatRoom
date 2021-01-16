@@ -1,13 +1,15 @@
 package cn.edu.hcnu.client;
 
+import cn.edu.hcnu.util.JDBConnection;
 import cn.edu.hcnu.util.MD5;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.Socket;
+import java.net.*;
 import java.security.NoSuchAlgorithmException;
 import java.sql.*;
 
@@ -38,7 +40,7 @@ public class LoginThread extends  Thread {
         t1.setEditable(false);
         loginp.add(t1);
 
-        final JTextField loginname = new JTextField("liwei");
+        final JTextField loginname = new JTextField("");
         loginname.setHorizontalAlignment(JTextField.CENTER);
         loginp.add(loginname);
 
@@ -47,7 +49,7 @@ public class LoginThread extends  Thread {
         t2.setEditable(false);
         loginp.add(t2);
 
-        final JTextField loginPassword = new JTextField("lw1234");
+        final JTextField loginPassword = new JTextField("");
         loginPassword.setHorizontalAlignment(JTextField.CENTER);
         loginp.add(loginPassword);
         /*
@@ -75,15 +77,14 @@ public class LoginThread extends  Thread {
             public void actionPerformed(ActionEvent e) {
                 String username = loginname.getText();
                 String password = loginPassword.getText();
+                String sql = "";
                 try {
-                    String url = "jdbc:oracle:thin:@localhost:1521:orcl";
-                    String username_db = "opts";
-                    String password_db = "opts1234";
-                    Connection conn = DriverManager.getConnection(url, username_db, password_db);
-                    String sql = "SELECT password FROM users WHERE username=?";
-                    PreparedStatement pstmt = conn.prepareStatement(sql);
-                    pstmt.setString(1,username);
-                    ResultSet rs = pstmt.executeQuery();
+
+                    Connection conn = JDBConnection.getConnection();
+                    sql = "SELECT password FROM users WHERE username=?";
+                    PreparedStatement ps = conn.prepareStatement(sql);
+                    ps.setString(1,username);
+                    ResultSet rs = ps.executeQuery();
 
                     if (rs.next()) {
 
@@ -91,8 +92,36 @@ public class LoginThread extends  Thread {
                         System.out.println("数据库读取到" + encodePassword);
                         if (MD5.checkpassword(password, encodePassword)) {
                             System.out.println("登录成功");
+                             /*
+                            * 获取本机ip
+                            *
+                            * */
+                            int port = 1688;
+                            DatagramSocket ds =null ;
+                            while (true){
+                                try {
+                                    ds = new DatagramSocket(port);
+                                    break;
+                                } catch (IOException ex) {
+                                    port +=1;
+
+                                }
+                            }
+
+                            try {
+                                InetAddress addr = InetAddress.getLocalHost();
+                                System.out.println("获取ip：" + addr.getHostAddress());
+                                sql = "UPDATE users set ip = ?,port =?,ststus='online' WHERE username =?";
+                                ps = conn.prepareStatement(sql);
+                                ps.setString(1,addr.getHostAddress());
+                                ps.setInt(2,port);
+                                ps.setString(3,username);
+                                ps.executeUpdate();
+                            } catch (UnknownHostException ex) {
+                                ex.printStackTrace();
+                            }
                             loginf.setVisible(false);
-                            ChatThreadWindow ctw = new ChatThreadWindow();
+                            ChatThreadWindow ctw = new ChatThreadWindow(username,ds);
                         } else {
                             System.out.println("登录失败");
                         }
