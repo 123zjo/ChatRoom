@@ -111,7 +111,7 @@ public class LoginThread extends  Thread {
                             try {
                                 InetAddress addr = InetAddress.getLocalHost();
                                 System.out.println("获取ip：" + addr.getHostAddress());
-                                sql = "UPDATE users set ip = ?,port =?,ststus='online' WHERE username =?";
+                                sql = "UPDATE users set ip = ?,port =?,status='online' WHERE username =?";
                                 ps = conn.prepareStatement(sql);
                                 ps.setString(1,addr.getHostAddress());
                                 ps.setInt(2,port);
